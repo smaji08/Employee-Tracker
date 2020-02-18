@@ -1,0 +1,26 @@
+{
+  "name": "employee-tracker",
+  "version": "1.0.0",
+  "description": "Content Management System for non.developers to view and interact with information stored in Employee/Department databases",
+  "main": "employeedb.js",
+  "scripts": {
+    "start": "node employeedb.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/smaji08/Employee-Tracker.git"
+  },
+  "author": "Augustine Stella Maria",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/smaji08/Employee-Tracker/issues"
+  },
+  "homepage": "https://github.com/smaji08/Employee-Tracker#readme",
+  "dependencies": {
+    "console.table": "^0.10.0",
+    "easy-table": "^1.1.1",
+    "inquirer": "^7.0.4",
+    "mysql": "^2.18.1"
+  }
+}
