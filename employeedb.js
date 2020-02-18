@@ -61,16 +61,16 @@ function start(){
                     view("Role");
                     break;
                 case "View Employees by Manager":
-                    // viewByMgr();
+                    viewByMgr();
                     break;
                 case "View total utilized budget of a department":
-                    // viewUtiBudget();
+                    viewUtiBudget();
                     break;
                 case "Update Employee Role":
                     updateRole();
                     break;
                 case "Update Employee Manager":
-                    // updateEmpMgr();
+                    updateEmpMgr();
                     break;
                 case "Delete Employee":
                 // deleteEmp();
@@ -90,10 +90,10 @@ function start(){
 
 function viewAll(){
   const query = `Select e.id empId, e.first_name, e.last_name, r.title, d.name, r.salary, concat(m.first_name, " ", m.last_name) as Manager 
-  FROM employee e 
-  JOIN role r ON e.role_id = r.id
-  JOIN department d ON d.id = r.department_id
-  LEFT JOIN employee m ON m.id = e.manager_id`;
+                 FROM employee e 
+                 JOIN role r ON e.role_id = r.id
+                 JOIN department d ON d.id = r.department_id
+                 LEFT JOIN employee m ON m.id = e.manager_id`;
   connection.query(query, (err, res) => {
     console.log("\n", Table.print(res));
     start();
@@ -105,6 +105,73 @@ function view(tab){
   connection.query(query, (err, res) => {
     console.log("\n", Table.print(res));
     start();
+  });
+}
+
+function viewByMgr(){
+  const query = `SELECT CONCAT(first_name, " ", last_name) as Mgr 
+    FROM Employee where id in (SELECT manager_id from Employee where manager_id IS NOT NULL)`;
+  connection.query(query, function(err,results){
+    if (err) throw err;
+    inquirer
+    .prompt([
+    {
+        name: "Mgr",
+        type: "rawlist",
+        choices: function() {
+            var choiceArray = [];
+            for (var i = 0; i < results.length; i++) {
+                choiceArray.push(results[i].Mgr);
+            }
+            return choiceArray;
+            },
+        message: "Please choose the Manager.."  
+    }
+    ])
+    .then(function(answer){
+        const query = `Select e.id empId, e.first_name, e.last_name, r.title, r.salary 
+                        FROM employee e 
+                        JOIN role r ON e.role_id = r.id
+                        LEFT JOIN employee m ON m.id = e.manager_id
+                        WHERE m.first_name = ?`;
+        connection.query(query,[answer.Mgr.split(" ")[0]],function(error,res){
+            if (error) throw error;
+            console.log("\n", Table.print(res));
+            start();
+        });    
+    });
+  });
+}
+
+function viewUtiBudget(){
+  connection.query("SELECT * FROM Department", function(err,results){
+    if (err) throw err;
+    inquirer
+    .prompt([
+    {
+        name: "Dept",
+        type: "rawlist",
+        choices: function() {
+            var choiceArray = [];
+            for (var i = 0; i < results.length; i++) {
+                choiceArray.push(results[i].name);
+            }
+            return choiceArray;
+            },
+        message: "Please choose the Department.."  
+    }
+    ])
+    .then(function(answer){
+        const query = `select SUM(salary) AS combinedSalary, name from employee e, role r, department d 
+        where e.role_id = r.id
+        AND r.department_id = d.id
+        AND d.name = ?`;
+        connection.query(query,[answer.Dept],function(error,res){
+            if (error) throw error;
+            console.log(`The total utilized budget of ${answer.Dept} is USD ${res[0].combinedSalary}`);
+            start();
+        });    
+    });
   });
 }
 
@@ -267,13 +334,72 @@ function updateRole(){
                 (SELECT id FROM Role WHERE title = ?)
                 WHERE first_name= ? AND last_name= ?`;
               connection.query(query,
-                [answer.roleName, answer.empName.split(" ")[0], answer.empName.split(" ")[1]],
+                [answer.roleName, answer.empName.split(" ")[0], answer.empName.split(" ").splice(1).join(" ")],
                 function(error){
                   if (error) throw error;
                     console.log(`Role ${answer.roleName} is added successfully`);
-                    view("Employee");
+                    viewAll();
                 }    
               );    
             });
           });
+}
+
+function updateEmpMgr(){
+    const query = `Select e.id empId, CONCAT(e.first_name, " ", e.last_name) as EmpName, r.title, concat(m.first_name, " ", m.last_name) as Manager, e.manager_id
+                    FROM employee e 
+                    JOIN role r ON e.role_id = r.id
+                    LEFT JOIN employee m ON m.id = e.manager_id
+                    WHERE r.title NOT LIKE 'Manager%'`;
+    connection.query(query, function(err, results) {
+        if (err) throw err;
+        inquirer
+        .prompt([
+        {
+            name: "empName",
+            type: "rawlist",
+            choices: function (){
+                var choiceArray = [];
+                for (var i = 0; i < results.length; i++) {
+                    // if (results[i].empId !== null)
+                    choiceArray.push(results[i].EmpName + "||" + results[i].title + "||" + results[i].Manager);
+                }
+                return choiceArray;
+            },
+            message: "Please select the Employee whose Manager needs to be updated.."
+        },
+        {
+            name: "mgrName",
+            type: "rawlist",
+            choices: function (){
+                var choice = [];
+                for (var i = 0; i < results.length; i++) {
+                    if(results[i].Manager !== null)
+                    choice.push(results[i].Manager);
+                }
+                var choiceDist = [...new Set(choice)];
+                return choiceDist;
+            },
+            message: "Please select the new Manager to be assigned.."
+        }
+        ])
+        .then(function(answer){
+            var chosenItem;
+            for (var i = 0; i < results.length; i++) {
+                if (results[i].item_name === answer.choice) 
+                    chosenItem = results[i];
+            }
+            const query = `UPDATE Employee 
+                           SET manager_id = ${chosenItem.manager_id}
+                           WHERE first_name= ? AND last_name= ?`;
+            connection.query(query, [ answer.empName.split(" ")[0], answer.empName.split(" ")[1]],
+                function(error){
+                if (error) throw error;
+                    console.log(`Updated ${answer.EmpName}'s Manager to ${chosenItem.Manager} successfully`);
+                    viewAll();
+                }    
+            );    
+            });
+        });
+
 }
