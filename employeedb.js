@@ -176,7 +176,11 @@ function viewUtiBudget(){
 }
 
 function addEmp(){
-  connection.query("SELECT * FROM Role", function(err, results) {
+  const query = `Select r.title, concat(m.first_name, " ", m.last_name) as Manager, e.manager_id
+                 FROM employee e 
+                 RIGHT JOIN role r ON e.role_id = r.id
+                 LEFT JOIN employee m ON m.id = e.manager_id;`
+  connection.query(query, function(err, results) {
     if (err) throw err;
     inquirer
     .prompt([
@@ -195,15 +199,35 @@ function addEmp(){
         type: "rawlist",
         choices: function() {
             var choiceArray = [];
-            for (var i = 0; i < results.length; i++) {
-                choiceArray.push(results[i].title);
-            }
-            return choiceArray;
+              for (var i = 0; i < results.length; i++) {
+                  choiceArray.push(results[i].title);
+              }
+            var choiceRoles = [...new Set(choiceArray)];
+            return choiceRoles;
             },
         message: "Please select the Role assigned.."
-    }
+    },
+    {
+      name: "mgr",
+      type: "rawlist",
+      choices: function() {
+          var choice = ["None"];
+            for (var i = 0; i < results.length; i++) {
+                if (results[i].Manager !== null)
+                choice.push(results[i].Manager);
+            }
+          var choiceMgr = [...new Set(choice)];
+          return choiceMgr;
+          },
+      message: "Please select the Manager to assign.."
+  }
     ])
     .then(function(answer){
+        var chosenItem;
+        for (var i = 0; i < results.length; i++) {
+            if (results[i].Manager === answer.mgr) 
+                chosenItem = results[i];
+        }
       connection.query("SELECT id from Role where title = ?",[answer.role],
         function(error,res){
             if (error) throw error;
@@ -212,12 +236,13 @@ function addEmp(){
             {
               first_name: answer.firstName,
               last_name: answer.lastName,
-              role_id: res[0].id
+              role_id: res[0].id,
+              manager_id: chosenItem?chosenItem.manager_id:null
             },
               function(err){
                 if (err) throw err;
                 console.log(`Employee ${answer.firstName}, ${answer.lastName} is added successfully`);
-                view("Employee");
+                viewAll();
               }    
             );    
       });
@@ -349,8 +374,7 @@ function updateEmpMgr(){
     const query = `Select e.id empId, CONCAT(e.first_name, " ", e.last_name) as EmpName, r.title, concat(m.first_name, " ", m.last_name) as Manager, e.manager_id
                     FROM employee e 
                     JOIN role r ON e.role_id = r.id
-                    LEFT JOIN employee m ON m.id = e.manager_id
-                    WHERE r.title NOT LIKE 'Manager%'`;
+                    LEFT JOIN employee m ON m.id = e.manager_id`;
     connection.query(query, function(err, results) {
         if (err) throw err;
         inquirer
@@ -361,8 +385,8 @@ function updateEmpMgr(){
             choices: function (){
                 var choiceArray = [];
                 for (var i = 0; i < results.length; i++) {
-                    // if (results[i].empId !== null)
-                    choiceArray.push(results[i].EmpName + "||" + results[i].title + "||" + results[i].Manager);
+                    if (!(results[i].title).startsWith("Manager"))
+                    choiceArray.push(results[i].EmpName);
                 }
                 return choiceArray;
             },
@@ -372,13 +396,12 @@ function updateEmpMgr(){
             name: "mgrName",
             type: "rawlist",
             choices: function (){
-                var choice = [];
+                var choice = ["None"];
                 for (var i = 0; i < results.length; i++) {
-                    if(results[i].Manager !== null)
-                    choice.push(results[i].Manager);
+                    if((results[i].title).startsWith("Manager"))
+                    choice.push(results[i].EmpName);
                 }
-                var choiceDist = [...new Set(choice)];
-                return choiceDist;
+                return choice;
             },
             message: "Please select the new Manager to be assigned.."
         }
@@ -386,16 +409,16 @@ function updateEmpMgr(){
         .then(function(answer){
             var chosenItem;
             for (var i = 0; i < results.length; i++) {
-                if (results[i].item_name === answer.choice) 
+                if (results[i].EmpName === answer.mgrName) 
                     chosenItem = results[i];
             }
             const query = `UPDATE Employee 
-                           SET manager_id = ${chosenItem.manager_id}
+                           SET manager_id = ?
                            WHERE first_name= ? AND last_name= ?`;
-            connection.query(query, [ answer.empName.split(" ")[0], answer.empName.split(" ")[1]],
+            connection.query(query, [ chosenItem?chosenItem.empId:null, answer.empName.split(" ")[0], answer.empName.split(" ").splice(1).join(" ")],
                 function(error){
                 if (error) throw error;
-                    console.log(`Updated ${answer.EmpName}'s Manager to ${chosenItem.Manager} successfully`);
+                    console.log(`Updated ${answer.empName}'s Manager to ${chosenItem?chosenItem.EmpName:null} successfully`);
                     viewAll();
                 }    
             );    

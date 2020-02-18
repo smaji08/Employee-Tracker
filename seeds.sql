@@ -27,11 +27,20 @@ UPDATE Employee
 SET manager_id= 7
 WHERE first_name = "Dave";
 
+-- to update manager for an employee
 Select e.id empId, CONCAT(e.first_name, " ", e.last_name) as EmpName, r.title, concat(m.first_name, " ", m.last_name) as Manager, e.manager_id
 FROM employee e 
 JOIN role r ON e.role_id = r.id
-LEFT JOIN employee m ON m.id = e.manager_id
-WHERE r.title NOT LIKE 'Manager%';
+LEFT JOIN employee m ON m.id = e.manager_id;
+
+
+-- to choose roles and managers while adding a new employee 
+Select r.title, concat(m.first_name, " ", m.last_name) as Manager, e.manager_id
+FROM employee e 
+RIGHT JOIN role r ON e.role_id = r.id
+LEFT JOIN employee m ON m.id = e.manager_id;
+
+
 
 -- update employee roles--  
 UPDATE Employee
