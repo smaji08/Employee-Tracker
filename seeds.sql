@@ -1,17 +1,31 @@
 USE Employee_DB;
 
-SELECT * FROM Department;
-SELECT * FROM Role;
-SELECT * FROM Employee;
-
 INSERT INTO Department (name)
-VALUES ("Sales"),("SCM"),("Production"),("Finance");
+VALUES ("Sales"),("SCM"),("Production"),("Finance"),("DummyDept1"),("DummyDept2"),("DummyDept3"),("DummyDpet4");
 
 INSERT INTO Role (title, salary, department_id) 
-VALUES ("Manager", 80000, 1), ("Executive", 70000, 3), ("Accountant", 75000, 4);
+VALUES ("Manager", 80000, 1), ("Executive-1", 70000, 2), ("Accountant-1", 75000, 4),("Executive-2", 70000, 3), ("Accountant-2", 75000, 7),
+("Manager-2", 790000, 6), ("Accountant-3", 75000, 5), ("Executive-dummy", 70000, 7), ("Accountant-dummy", 75000, 8);
 
 INSERT INTO Employee (first_name, last_name, role_id)
-VALUES ("Matt", "Wing", 1), ("Nick", "Monteleone", 2), ("Augustine", "Stella Maria", 2); 
+VALUES ("Matt", "Wing", 2), ("Nick", "Monteleone", 3), ("Augustine", "Stella Maria", 4), ("Mattdummy", "Wing", 6), ("Nickdummy", "Monteleone", 7), 
+("Augustinedummy", "Stella Maria", 8), ("rekha","dummy",9); 
+
+select * from department;
+select * from role;
+select * from employee;
+
+UPDATE Employee 
+SET manager_id= 3
+WHERE first_name = "Augustinedummy";
+
+
+Drop table department;
+
+
+delete from Employee where id= 6;
+delete from Role where id= 4;
+delete from Department where id= 4;
 
 SET SQL_SAFE_UPDATES = 0;
 

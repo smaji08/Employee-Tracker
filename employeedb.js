@@ -1,7 +1,7 @@
-var mysql = require("mysql");
-var inquirer = require("inquirer");
-var Table = require ("easy-table");
-var password = require ("./password");
+const mysql = require("mysql");
+const inquirer = require("inquirer");
+const Table = require ("easy-table");
+const password = require ("./lib/password");
 
 require('events').EventEmitter.prototype._maxListeners = 100
 
@@ -21,7 +21,7 @@ connection.connect(function(err) {
 
 function start(){
     inquirer
-        .prompt({
+        .prompt([{
             name: "action",
             type: "rawlist",
             message: "What would you like to do?",
@@ -35,7 +35,7 @@ function start(){
                 "Delete Employee", "Delete Role", "Delete Department",
                 "Exit"
             ]
-        })
+        }])
         .then(function(answer){
             
             switch(answer.action){
@@ -73,19 +73,36 @@ function start(){
                     updateEmpMgr();
                     break;
                 case "Delete Employee":
-                // deleteEmp();
+                    deleteEmp();
                     break;
                 case "Delete Role":
-                // deleteRole();
+                    deleteRole();
                     break;
                 case "Delete Department":
-                    // deleteDept();
+                    deleteDept();
                     break;
                 case "Exit":
                     connection.end();
                     break;
             }
         });
+}
+
+//checking with RegEx which allows only alphabets and space for names and school
+function validateString(name){
+  let re = name.match(/^[a-zA-Z ]+$/);
+  return re !== null || "Please enter Alphabets only";
+}
+
+//First character of each word of the name or school to be uppercased
+function toUpper(val) {
+  return val.toLowerCase().split(' ').map((s) => s.charAt(0).toUpperCase() + s.substring(1)).join(' ');
+}
+
+//regEx for numbers
+function validateNumber(name){
+  let re = name.match(/^[0-9]*$/);
+  return re !== null || "Please enter Numerics only";
 }
 
 function viewAll(){
@@ -102,7 +119,7 @@ function viewAll(){
 
 function view(tab){
   const query = "SELECT * FROM " + tab;
-  connection.query(query, (err, res) => {
+  connection.query(query,(err, res) => {
     console.log("\n", Table.print(res));
     start();
   });
@@ -187,12 +204,16 @@ function addEmp(){
     {
         name: "firstName",
         type: "input",
-        message: "Please enter the First Name of the employee.."
+        message: "Please enter the First Name of the employee..",
+        validate: validateString,
+        filter: toUpper
     },
     {
         name: "lastName",
         type: "input",
-        message: "Please enter the Last Name of the employee.."
+        message: "Please enter the Last Name of the employee..",
+        validate: validateString,
+        filter: toUpper
     },
     {
         name: "role",
@@ -256,7 +277,9 @@ function addDept(){
         {
             name: "deptName",
             type: "input",
-            message: "Please enter the Name of the Department.."
+            message: "Please enter the Name of the Department..",
+            validate: validateString,
+            filter: toUpper
         }
         ])
         .then(function(answer){
@@ -279,12 +302,15 @@ function addRole(){
         {
             name: "roleName",
             type: "input",
-            message: "Please enter the Role you want to add.."
+            message: "Please enter the Role you want to add..",
+            validate: validateString,
+            filter: toUpper
         },
         {
             name: "salary",
             type: "input",
-            message: "Enter the salary for this role.."
+            message: "Enter the salary for this role..",
+            validate: validateNumber
         },
         {
             name: "deptName",
@@ -296,7 +322,7 @@ function addRole(){
                 }
                 return choiceArray;
             },
-             message: "Please select the Role assigned.."
+             message: "Please select the Department assigned.."
         }
         ])
         .then(function(answer){
@@ -362,7 +388,7 @@ function updateRole(){
                 [answer.roleName, answer.empName.split(" ")[0], answer.empName.split(" ").splice(1).join(" ")],
                 function(error){
                   if (error) throw error;
-                    console.log(`Role ${answer.roleName} is added successfully`);
+                    console.log(`Updated ${answer.empName}'s Role to ${answer.roleName} successfully`);
                     viewAll();
                 }    
               );    
@@ -425,4 +451,90 @@ function updateEmpMgr(){
             });
         });
 
+}
+
+function deleteEmp(){
+  connection.query("SELECT * FROM Employee",function(err, results){
+    inquirer
+      .prompt([
+      {
+          name: "emp",
+          type: "rawlist",
+          choices: function (){
+              var choiceArray = [];
+              for (var i = 0; i < results.length; i++) {
+                  choiceArray.push(results[i].id + " " + results[i].first_name + " " + results[i].last_name);
+              }
+              return choiceArray;
+          },
+          message: "Please select the Employee to be deleted.."
+      }
+    ])
+    .then(function(answer){
+        const query = "DELETE FROM Employee Where id = ? AND first_name = ? AND last_name = ?";
+        connection.query(query,[answer.emp.split(" ")[0], answer.emp.split(" ")[1], answer.emp.split(" ").splice(2)],
+            function(err){
+              if (err) throw err;
+              console.log(`Deleted ${answer.emp.split(" ")[1]} ${answer.emp.split(" ").splice(2)} Successfully`);
+              viewAll();
+        });
+    });  
+  });
+}
+
+function deleteRole(){
+  connection.query("SELECT * FROM Role",function(err, results){
+    inquirer
+      .prompt([
+      {
+          name: "role",
+          type: "rawlist",
+          choices: function (){
+              var choiceArray = [];
+              for (var i = 0; i < results.length; i++) {
+                  choiceArray.push(results[i].title);
+              }
+              return choiceArray;
+          },
+          message: "Please select the Role to be deleted.."
+      }
+    ])
+    .then(function(answer){
+        const query = "DELETE FROM Role Where title = ?";
+        connection.query(query,[answer.role],
+            function(err){
+              if (err) throw err;
+              console.log(`Deleted ${answer.role} Successfully`);
+              view("Role");
+        });
+    });  
+  });
+}
+
+function deleteDept(){
+  connection.query("SELECT * FROM Department",function(err, results){
+    inquirer
+      .prompt([
+      {
+          name: "dept",
+          type: "rawlist",
+          choices: function (){
+              var choiceArray = [];
+              for (var i = 0; i < results.length; i++) {
+                  choiceArray.push(results[i].name);
+              }
+              return choiceArray;
+          },
+          message: "Please select the Department to be deleted.."
+      }
+    ])
+    .then(function(answer){
+        const query = "DELETE FROM Department Where name = ?";
+        connection.query(query,[answer.dept], function(err){
+              if (err) throw err;
+              console.log(`Deleted ${answer.dept} Successfully`);
+              view("Department");
+        });
+    });  
+  });
 }
