@@ -193,10 +193,10 @@ function viewUtiBudget(){
 }
 
 function addEmp(){
-  const query = `Select r.title, concat(m.first_name, " ", m.last_name) as Manager, e.manager_id
-                 FROM employee e 
-                 RIGHT JOIN role r ON e.role_id = r.id
-                 LEFT JOIN employee m ON m.id = e.manager_id;`
+  const query = `Select r.title, concat(e.first_name, " ", e.last_name) as Manager, e.id
+                  FROM employee e 
+                  RIGHT JOIN role r ON e.role_id = r.id
+                  LEFT JOIN employee m ON m.id = e.manager_id;`
   connection.query(query, function(err, results) {
     if (err) throw err;
     inquirer
@@ -234,7 +234,7 @@ function addEmp(){
       choices: function() {
           var choice = ["None"];
             for (var i = 0; i < results.length; i++) {
-                if (results[i].Manager !== null)
+                if (results[i].Manager !== null && results[i].title.startsWith("Manager") )
                 choice.push(results[i].Manager);
             }
           var choiceMgr = [...new Set(choice)];
@@ -258,7 +258,7 @@ function addEmp(){
               first_name: answer.firstName,
               last_name: answer.lastName,
               role_id: res[0].id,
-              manager_id: chosenItem?chosenItem.manager_id:null
+              manager_id: chosenItem?chosenItem.id:null
             },
               function(err){
                 if (err) throw err;
@@ -382,8 +382,8 @@ function updateRole(){
           ])
           .then(function(answer){
               const query = `UPDATE Employee SET role_id =
-                (SELECT id FROM Role WHERE title = ?)
-                WHERE first_name= ? AND last_name= ?`;
+                (SELECT id FROM Role WHERE title = ?), manager_id = null 
+                 WHERE first_name= ? AND last_name= ?`;
               connection.query(query,
                 [answer.roleName, answer.empName.split(" ")[0], answer.empName.split(" ").splice(1).join(" ")],
                 function(error){

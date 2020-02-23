@@ -1,16 +1,15 @@
 USE Employee_DB;
 
 INSERT INTO Department (name)
-VALUES ("Sales"),("SCM"),("Production"),("Finance"),("DummyDept1"),("DummyDept2"),("DummyDept3"),("DummyDpet4");
+VALUES ("Sales"),("SCM"),("Production"),("Finance");
+
 
 INSERT INTO Role (title, salary, department_id) 
-VALUES ("Manager", 80000, 1), ("Executive-1", 70000, 2), ("Accountant-1", 75000, 4),("Executive-2", 70000, 3), ("Accountant-2", 75000, 7),
-("Manager-2", 790000, 6), ("Accountant-3", 75000, 5), ("Executive-dummy", 70000, 7), ("Accountant-dummy", 75000, 8);
+VALUES ("Manager - Sale", 120000, 1), ("Manager - Finance", 110000, 4), ("Accountant-2", 65000, 4), ("Manager - IT", 130000, 10), 
+("Software Engineer", 90000, 10),  ("Supervisor", 70000, 3),
+("Worker", 45000, 3), ("Manager - SCM", 100000, 2), ("Executive-1", 60000, 2);
 
-INSERT INTO Employee (first_name, last_name, role_id)
-VALUES ("Matt", "Wing", 2), ("Nick", "Monteleone", 3), ("Augustine", "Stella Maria", 4), ("Mattdummy", "Wing", 6), ("Nickdummy", "Monteleone", 7), 
-("Augustinedummy", "Stella Maria", 8), ("rekha","dummy",9); 
-
+               
 select * from department;
 select * from role;
 select * from employee;
@@ -24,8 +23,8 @@ Drop table department;
 
 
 delete from Employee where id= 6;
-delete from Role where id= 4;
-delete from Department where id= 4;
+delete from Role where id= 1;
+delete from Department where id= 9;
 
 SET SQL_SAFE_UPDATES = 0;
 
@@ -49,21 +48,21 @@ LEFT JOIN employee m ON m.id = e.manager_id;
 
 
 -- to choose roles and managers while adding a new employee 
-Select r.title, concat(m.first_name, " ", m.last_name) as Manager, e.manager_id
-FROM employee e 
-RIGHT JOIN role r ON e.role_id = r.id
-LEFT JOIN employee m ON m.id = e.manager_id;
+Select r.title, concat(e.first_name, " ", e.last_name) as Manager, e.id
+                 FROM employee e 
+                 RIGHT JOIN role r ON e.role_id = r.id
+                 LEFT JOIN employee m ON m.id = e.manager_id;
 
 
 
 -- update employee roles--  
 UPDATE Employee
-SET role_id=2
-WHERE first_name="Augustine";
+SET role_id=19 , manager_id = null 
+WHERE first_name="Fidha";
 
 UPDATE Employee
-SET role_id = (SELECT id from Role Where title = "Engineer")
-Where first_name = "Augustine" AND last_name="Stella Maria";
+SET role_id = (SELECT id from Role Where title = "Supervisor"), manager_id = null 
+Where first_name = "Fidha" AND last_name="Yasheen";
 
 select first_name, last_name, title from employee inner join role on employee.role_id = role.id;
 
